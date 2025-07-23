@@ -218,7 +218,7 @@
       $("#micSelect").click(() => {
         $("#audioSelectWrapper").css('display', 'none');
 
-        navigator.getUserMedia({ audio: true }, (stream) => {
+        navigator.mediaDevices.getUserMedia({ audio: true }, (stream) => {
           var micSourceNode = audioContext.createMediaStreamSource(stream);
           connectMicAudio(micSourceNode, audioContext);
         }, (err) => {
