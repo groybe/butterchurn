@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Butterchurn Demo</title>
+  <meta name="description" content="Butterchurn Demo Example">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- <script type="text/javascript" src="../dist/butterchurn.js"></script> -->
+  <script type="text/javascript" src="./libs/lodash.js"></script>
+  <script type="text/javascript" src="./libs/base.min.js"></script>
+  <script type="text/javascript" src="./libs/extra.min.js"></script>
+  <script
+    src="/libs/jquery-3.1.1.min.js"
+    integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
+    crossorigin="anonymous"></script>
+
+  <style>
+
+    #fpsDisplay {
+      position: absolute;
+      top: 10%;
+      right: 10%;
+      color: white;
+      z-index: 20;
+      background: rgba(0, 0, 0, 0.75);
+      color: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      font-size: 24px;
+      display: none;
+    }
+
+    #audioSettingsWrapper {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+    background: rgba(0, 0, 0, 0.75);
+    color: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    }
+
+    #canvas:-moz-full-screen {
+      width: 100%;
+      height: 100%;
+    }
+    #canvas:-webkit-full-screen {
+      width: 100%;
+      height: 100%;
+    }
+    #canvas:-ms-fullscreen {
+      width: 100%;
+      height: 100%;
+    }
+    #canvas:fullscreen {
+      width: 100%;
+      height: 100%;
+    }
+
+    #presetSelect {
+      max-width: 300px;
+    }
+
+    #presetCycleLength {
+      width: 50px;
+	}
+
+	#meshSizeSelect {
+      width: 100px;
+    }
+	
+    #fullscreenBtn {
+      padding: 6px 12px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    #localFileBtn {
+      padding: 6px 12px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    #micSelectBtn {
+      padding: 6px 12px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    #showFpsBtn {
+      padding: 6px 12px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+  </style>
+  <link rel="stylesheet" href="./libs/normalize.css" />
+
+  <script type="module">
+    import butterchurn from './libs/butterchurn.js';
+
+    $(function() {
+      var visualizer = null;
+      var rendering = false;
+      var audioContext = null;
+      var sourceNode = null;
+      var delayedAudible = null;
+      var cycleInterval = null;
+      var presets = {};
+      var presetKeys = [];
+      var presetIndexHist = [];
+      var presetIndex = 0;
+      var presetCycle = true;
+      var presetCycleLength = 25000;
+      var presetRandom = true;
+      var canvas = document.getElementById('canvas');
+      var canvasScaleFactor = 0.5;
+      var meshSizeSelect = [48, 36];
+
+
+      function connectToAudioAnalyzer(sourceNode) {
+        if(delayedAudible) {
+          delayedAudible.disconnect();
+        }
+
+        delayedAudible = audioContext.createDelay();
+        delayedAudible.delayTime.value = 0.26;
+
+        sourceNode.connect(delayedAudible)
+        delayedAudible.connect(audioContext.destination);
+
+        visualizer.connectAudio(delayedAudible);
+      }
+
+      /* function startRenderer() {
+        requestAnimationFrame(() => startRenderer());
+        visualizer.render();
+      } */
+
+      let lastFrameTime = performance.now();
+let frames = 0;
+let lastFpsUpdate = performance.now();
+let fps = 0;
+
+function startRenderer() {
+  requestAnimationFrame(() => startRenderer());
+
+  visualizer.render();
+
+  const now = performance.now();
+  frames++;
+
+  if (now - lastFpsUpdate >= 1000) {
+    fps = frames;
+    frames = 0;
+    lastFpsUpdate = now;
+    $("#fpsDisplay").text(`FPS: ${fps}`);
+  }
+}
+
+
+      function playBufferSource(buffer) {
+        if (!rendering) {
+          rendering = true;
+          startRenderer();
+        }
+
+        if (sourceNode) {
+          sourceNode.disconnect();
+        }
+
+        sourceNode = audioContext.createBufferSource();
+        sourceNode.buffer = buffer;
+        connectToAudioAnalyzer(sourceNode);
+
+        sourceNode.start(0);
+      }
+
+      function loadLocalFiles(files, index = 0) {
+        audioContext.resume();
+
+        var reader = new FileReader();
+        reader.onload = (event) => {
+          audioContext.decodeAudioData(
+            event.target.result,
+            (buf) => {
+              playBufferSource(buf);
+
+              setTimeout(() => {
+                if (files.length > index + 1) {
+                  loadLocalFiles(files, index + 1);
+                } else {
+                  sourceNode.disconnect();
+                  sourceNode = null;
+                  $("#audioSettingsWrapper").css('display', 'block');
+                }
+              }, buf.duration * 1000);
+            }
+          );
+        };
+
+        var file = files[index];
+        reader.readAsArrayBuffer(file);
+      }
+
+      function connectMicAudio(sourceNode, audioContext) {
+        audioContext.resume();
+
+        var gainNode = audioContext.createGain();
+        gainNode.gain.value = 1.25;
+        sourceNode.connect(gainNode);
+
+        visualizer.connectAudio(gainNode);
+        startRenderer();
+      }
+
+      function nextPreset(blendTime = 5.7) {
+        presetIndexHist.push(presetIndex);
+
+        var numPresets = presetKeys.length;
+        if (presetRandom) {
+          presetIndex = Math.floor(Math.random() * presetKeys.length);
+        } else {
+          presetIndex = (presetIndex + 1) % numPresets;
+        }
+
+        visualizer.loadPreset(presets[presetKeys[presetIndex]], blendTime);
+        $('#presetSelect').val(presetIndex);
+      }
+
+      function prevPreset(blendTime = 5.7) {
+        var numPresets = presetKeys.length;
+        if (presetIndexHist.length > 0) {
+          presetIndex = presetIndexHist.pop();
+        } else {
+          presetIndex = ((presetIndex - 1) + numPresets) % numPresets;
+        }
+
+        visualizer.loadPreset(presets[presetKeys[presetIndex]], blendTime);
+        $('#presetSelect').val(presetIndex);
+      }
+
+      function restartCycleInterval() {
+        if (cycleInterval) {
+          clearInterval(cycleInterval);
+          cycleInterval = null;
+        }
+
+        if (presetCycle) {
+          cycleInterval = setInterval(() => nextPreset(2.7), presetCycleLength);
+        }
+      }
+
+      $(document).keydown((e) => {
+        if (e.which === 32 || e.which === 39) {
+          nextPreset();
+        } else if (e.which === 8 || e.which === 37) {
+          prevPreset();
+        } else if (e.which === 72) {
+          nextPreset(0);
+        }
+      });
+
+      $('#presetSelect').change((evt) => {
+        presetIndexHist.push(presetIndex);
+        presetIndex = parseInt($('#presetSelect').val());
+        visualizer.loadPreset(presets[presetKeys[presetIndex]], 5.7);
+      });
+
+      $('#presetCycle').change(() => {
+        presetCycle = $('#presetCycle').is(':checked');
+        restartCycleInterval();
+      });
+
+      $('#presetCycleLength').change((evt) => {
+        presetCycleLength = parseInt($('#presetCycleLength').val() * 1000);
+        restartCycleInterval();
+      });
+
+      $('#presetRandom').change(() => {
+        presetRandom = $('#presetRandom').is(':checked');
+      });
+
+      $('#canvasScaleFactor').change((evt) => {
+        canvasScaleFactor = parseFloat($('#canvasScaleFactor').val());
+        canvas.width = window.innerWidth * canvasScaleFactor;
+        canvas.height = window.innerHeight * canvasScaleFactor;
+        visualizer.setRendererSize(canvas.width, canvas.height);
+      });
+
+      $('#meshSizeSelect').change((evt) => {
+      var meshSizeSelect = evt.target.value.split("x").map(Number);
+      visualizer.setInternalMeshSize(...meshSizeSelect);
+      });
+
+      $("#localFileBtn").click(function() {
+
+        var fileSelector = $('<input type="file" accept="audio/*" multiple />');
+
+        fileSelector[0].onchange = function(event) {
+          loadLocalFiles(fileSelector[0].files);
+        }
+
+        fileSelector.click();
+      });
+      
+      $("#micSelectBtn").click(() => {
+
+        navigator.mediaDevices.getUserMedia({ audio: true })
+        .then((stream) => {
+          var micSourceNode = audioContext.createMediaStreamSource(stream);
+          connectMicAudio(micSourceNode, audioContext);
+          })
+        .catch((err) => {
+          console.log('Error getting audio stream from getUserMedia');
+        });
+      });
+
+$("#fullscreenBtn").click(() => {
+  const wrapper = document.getElementById("mainWrapper");
+
+  const isFullscreen =
+    document.fullscreenElement ||
+    document.webkitFullscreenElement ||
+    document.mozFullScreenElement ||
+    document.msFullscreenElement;
+
+  if (isFullscreen) {
+    // Exit fullscreen
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    } else if (document.mozCancelFullScreen) {
+      document.mozCancelFullScreen();
+    } else if (document.msExitFullscreen) {
+      document.msExitFullscreen();
+    }
+  } else {
+    // Enter fullscreen
+    if (wrapper.requestFullscreen) {
+      wrapper.requestFullscreen();
+    } else if (wrapper.webkitRequestFullscreen) {
+      wrapper.webkitRequestFullscreen();
+    } else if (wrapper.mozRequestFullScreen) {
+      wrapper.mozRequestFullScreen();
+    } else if (wrapper.msRequestFullscreen) {
+      wrapper.msRequestFullscreen();
+    }
+  }
+});
+
+      $("#showFpsBtn").click(() => {
+          const fpsBox = $("#fpsDisplay");
+          const isVisible = fpsBox.css("display") !== "none";
+
+          fpsBox.css("display", isVisible ? "none" : "block");
+      });
+
+      function resizeCanvas() {
+        canvas.width = window.innerWidth * canvasScaleFactor;
+        canvas.height = window.innerHeight * canvasScaleFactor;
+        canvas.style.width  = window.innerWidth + 'px';
+        canvas.style.height = window.innerHeight + 'px';
+        visualizer.setRendererSize(canvas.width, canvas.height);
+      }
+
+
+      let hideOverlayTimer;
+
+      $(document).on("mousemove", function () {
+        // Show the overlay immediately
+        $("#audioSettingsWrapper").css('display', 'block');
+
+        // Clear any existing hide timer
+        clearTimeout(hideOverlayTimer);
+
+        // Set a new timer to hide after 4 seconds of inactivity
+        hideOverlayTimer = setTimeout(() => {
+          $("#audioSettingsWrapper").css('display', 'none');
+        }, 4000);
+      });
+
+
+
+      function initPlayer() {
+        audioContext = new AudioContext();
+
+        presets = {};
+        if (window.base && window.base.default) {
+          Object.assign(presets, window.base.default);
+        }
+        if (window.extra && window.extra.default) {
+          Object.assign(presets, window.extra.default);
+        }
+        presets = _(presets).toPairs().sortBy(([k, v]) => k.toLowerCase()).fromPairs().value();
+        presetKeys = _.keys(presets);
+        presetIndex = Math.floor(Math.random() * presetKeys.length);
+
+        var presetSelect = document.getElementById('presetSelect');
+        for(var i = 0; i < presetKeys.length; i++) {
+            var opt = document.createElement('option');
+            opt.innerHTML = presetKeys[i].substring(0,60) + (presetKeys[i].length > 60 ? '...' : '');
+            opt.value = i;
+            presetSelect.appendChild(opt);
+        }
+
+        visualizer = butterchurn.createVisualizer(audioContext, canvas , {
+          pixelRatio: window.devicePixelRatio || 1,
+          textureRatio: 1,
+        });
+
+        resizeCanvas(); // Initial sizing
+
+        window.addEventListener("resize", resizeCanvas);
+        document.addEventListener("fullscreenchange", resizeCanvas);
+
+
+        nextPreset(0);
+        cycleInterval = setInterval(() => nextPreset(2.7), presetCycleLength);
+      }
+
+      initPlayer();
+    });
+  </script>
+</head>
+<body>
+  <div id="mainWrapper">
+    <div id="audioSettingsWrapper">
+      <div id="presetControls">
+        <div>Preset: <select id="presetSelect"></select></div>
+        <div>Cycle: <input type="checkbox" id="presetCycle" checked></input>
+                    <input type="number" id="presetCycleLength"step="1" value="25" min="1"></input>
+                    Canvas Size: <input type="number" id="canvasScaleFactor"step="0.25" value="0.5" min="0.25" max="4.0"></input>
+                    </div>
+        <div>
+          Random: <input type="checkbox" id="presetRandom" checked></input>
+          <label for="meshSizeSelect">Mesh Size:</label>
+          <select id="meshSizeSelect">
+            <option value="24x18">24 x 18</option>
+            <option value="32x24">32 x 24</option>
+            <option value="48x36" selected>48 x 36</option>
+            <option value="64x48">64 x 48</option>
+            <option value="96x72">96 x 72</option>
+            <option value="128x96">128 x 96</option>
+          </select>
+        </div>
+        <div>
+          <button id="fullscreenBtn">Fullscreen</button>
+          <button id="localFileBtn">Load local files</button>
+          <button id="micSelectBtn">Use Mic</button>
+          <button id="showFpsBtn">Show FPS</button>
+        </div>
+      </div>
+    </div>
+  <div id="fpsDisplay">FPS:</div>
+  <canvas id='canvas' width='800' height='600'></canvas>
+  </div>
+
+  <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js');
+  }
+  </script>
+
+</body>
+</html>
