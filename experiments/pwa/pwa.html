@@ -20,15 +20,16 @@
 
     #fpsDisplay {
       position: absolute;
-      top: 10%;
-      right: 10%;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
       color: white;
-      z-index: 20;
+      z-index: 10;
       background: rgba(0, 0, 0, 0.75);
       color: #fff;
       padding: 20px;
       border-radius: 10px;
-      font-size: 24px;
+      font-size: 100px;
       display: none;
     }
 
@@ -37,7 +38,7 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    z-index: 10;
+    z-index: 20;
     background: rgba(0, 0, 0, 0.75);
     color: #fff;
     padding: 20px;
@@ -119,7 +120,7 @@
       var presetRandom = true;
       var canvas = document.getElementById('canvas');
       var canvasScaleFactor = 0.5;
-      var meshSizeSelect = [48, 36];
+      var meshSizeSelect = [32, 24];
 
 
       function connectToAudioAnalyzer(sourceNode) {
@@ -162,50 +163,35 @@ function startRenderer() {
   }
 }
 
-
-      function playBufferSource(buffer) {
+			function loadLocalFiles(files, index = 0) {
         if (!rendering) {
           rendering = true;
-          startRenderer();
-        }
+          startRenderer();	
+				}
+				audioContext.resume();
 
-        if (sourceNode) {
-          sourceNode.disconnect();
-        }
+				const audioElement = new Audio();
+				audioElement.src = URL.createObjectURL(files[index]);
+				audioElement.controls = true;
+				document.body.appendChild(audioElement);
 
-        sourceNode = audioContext.createBufferSource();
-        sourceNode.buffer = buffer;
-        connectToAudioAnalyzer(sourceNode);
+				sourceNode = audioContext.createMediaElementSource(audioElement);
+				connectToAudioAnalyzer(sourceNode);
 
-        sourceNode.start(0);
-      }
+				audioElement.play();
 
-      function loadLocalFiles(files, index = 0) {
-        audioContext.resume();
+				// Optional: auto-play next file after current ends
+				audioElement.onended = () => {
+					if (files.length > index + 1) {
+						loadLocalFiles(files, index + 1);
+					} else {
+						sourceNode.disconnect();
+						sourceNode = null;
+						$("#audioSettingsWrapper").css('display', 'block');
+					}
+				};
+			}
 
-        var reader = new FileReader();
-        reader.onload = (event) => {
-          audioContext.decodeAudioData(
-            event.target.result,
-            (buf) => {
-              playBufferSource(buf);
-
-              setTimeout(() => {
-                if (files.length > index + 1) {
-                  loadLocalFiles(files, index + 1);
-                } else {
-                  sourceNode.disconnect();
-                  sourceNode = null;
-                  $("#audioSettingsWrapper").css('display', 'block');
-                }
-              }, buf.duration * 1000);
-            }
-          );
-        };
-
-        var file = files[index];
-        reader.readAsArrayBuffer(file);
-      }
 
       function connectMicAudio(sourceNode, audioContext) {
         audioContext.resume();
@@ -360,7 +346,18 @@ $("#fullscreenBtn").click(() => {
 
           fpsBox.css("display", isVisible ? "none" : "block");
       });
+      
+$("#refreshPWA").click(() => {
+	console.log('button press');
+  //caches.delete('butterchurn-cache').then(() => {
+    if (navigator.serviceWorker.controller) {
+			console.log('Sending service worker refresh message');
+      navigator.serviceWorker.controller.postMessage({ type: "REFRESH_CACHE" });
+    }
+  //});
+});
 
+      
       function resizeCanvas() {
         canvas.width = window.innerWidth * canvasScaleFactor;
         canvas.height = window.innerHeight * canvasScaleFactor;
@@ -413,7 +410,9 @@ $("#fullscreenBtn").click(() => {
           pixelRatio: window.devicePixelRatio || 1,
           textureRatio: 1,
         });
-
+				
+				//Load initial settings
+				visualizer.setInternalMeshSize(...meshSizeSelect);
         resizeCanvas(); // Initial sizing
 
         window.addEventListener("resize", resizeCanvas);
@@ -439,11 +438,12 @@ $("#fullscreenBtn").click(() => {
                     </div>
         <div>
           Random: <input type="checkbox" id="presetRandom" checked></input>
+          <button id="refreshPWA">🔁 Refresh PWA Cache</button>
           <label for="meshSizeSelect">Mesh Size:</label>
           <select id="meshSizeSelect">
             <option value="24x18">24 x 18</option>
-            <option value="32x24">32 x 24</option>
-            <option value="48x36" selected>48 x 36</option>
+            <option value="32x24" selected>32 x 24</option>
+            <option value="48x36">48 x 36</option>
             <option value="64x48">64 x 48</option>
             <option value="96x72">96 x 72</option>
             <option value="128x96">128 x 96</option>
@@ -460,12 +460,16 @@ $("#fullscreenBtn").click(() => {
   <div id="fpsDisplay">FPS:</div>
   <canvas id='canvas' width='800' height='600'></canvas>
   </div>
-
   <script>
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js');
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => {
+        console.log('Service Worker registered with scope:', reg.scope);
+      })
+      .catch(err => {
+        console.error('Service Worker registration failed:', err);
+      });
   }
-  </script>
-
+</script>
 </body>
 </html>
