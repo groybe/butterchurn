@@ -8,7 +8,6 @@
   <meta name="description" content="Butterchurn Demo Example">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-	
   <!-- <script type="text/javascript" src="../dist/butterchurn.js"></script> -->
   <script type="text/javascript" src="./libs/lodash.js"></script>
   <script type="text/javascript" src="./libs/base.min.js"></script>
@@ -20,21 +19,13 @@
 
   <style>
 
-    #fpsDisplay {
-      position: absolute;
-			top: 50%;
-			left: 50%;
-			transform: translate(-50%, -50%);
-      color: white;
-      z-index: 10;
-      background: rgba(0, 0, 0, 0.75);
-      color: #fff;
-      padding: 20px;
-      border-radius: 10px;
-      font-size: 100px;
-      display: none;
-    }
 
+	  #fpsDisplay {
+			font-size: 100px;
+      padding: 20px;
+      display: none;
+		}
+		
     #audioSettingsWrapper {
     position: absolute;
     top: 50%;
@@ -43,8 +34,11 @@
     z-index: 20;
     background: rgba(0, 0, 0, 0.75);
     color: #fff;
-    padding: 20px;
     border-radius: 10px;
+    }
+    
+    #presetControls {
+      padding: 20px;
     }
 
     #canvas:-moz-full-screen {
@@ -125,7 +119,7 @@
       var presetCycleLength = 25000;
       var presetRandom = true;
       var canvas = document.getElementById('canvas');
-      var canvasScaleFactor = 0.5;
+      var canvasScaleFactor = 0.75;
       var meshSizeSelect = [48, 36];
       var frameInterval = 0;
 			var frameLimit = 45;
@@ -327,45 +321,8 @@
         });
       });
 
-$("#fullscreenBtn").click(() => {
-  const wrapper = document.getElementById("mainWrapper");
-
-  const isFullscreen =
-    document.fullscreenElement ||
-    document.webkitFullscreenElement ||
-    document.mozFullScreenElement ||
-    document.msFullscreenElement;
-
-  if (isFullscreen) {
-    // Exit fullscreen
-    if (document.exitFullscreen) {
-      document.exitFullscreen();
-    } else if (document.webkitExitFullscreen) {
-      document.webkitExitFullscreen();
-    } else if (document.mozCancelFullScreen) {
-      document.mozCancelFullScreen();
-    } else if (document.msExitFullscreen) {
-      document.msExitFullscreen();
-    }
-  } else {
-    // Enter fullscreen
-    if (wrapper.requestFullscreen) {
-      wrapper.requestFullscreen();
-    } else if (wrapper.webkitRequestFullscreen) {
-      wrapper.webkitRequestFullscreen();
-    } else if (wrapper.mozRequestFullScreen) {
-      wrapper.mozRequestFullScreen();
-    } else if (wrapper.msRequestFullscreen) {
-      wrapper.msRequestFullscreen();
-    }
-  }
-});
-
       $("#showFpsBtn").click(() => {
-          const fpsBox = $("#fpsDisplay");
-          const isVisible = fpsBox.css("display") !== "none";
-
-          fpsBox.css("display", isVisible ? "none" : "block");
+          $("#fpsDisplay").toggle();
       });
       
 $("#refreshPWA").click(() => {
@@ -387,21 +344,21 @@ $("#refreshPWA").click(() => {
         visualizer.setRendererSize(canvas.width, canvas.height);
       }
 
+			$(canvas).on("click", function () {
+				$("#presetControls").toggle();
+			});
+      
+      canvas.addEventListener('dblclick', () => {
+				const wrapper = document.getElementById("mainWrapper");
+				const isFullscreen = document.fullscreenElement;
 
-      let hideOverlayTimer;
+				if (isFullscreen) {
+					document.exitFullscreen();
+				} else {
+						wrapper.requestFullscreen();
+					}
+			});
 
-      $(document).on("mousemove", function () {
-        // Show the overlay immediately
-        $("#audioSettingsWrapper").css('display', 'block');
-
-        // Clear any existing hide timer
-        clearTimeout(hideOverlayTimer);
-
-        // Set a new timer to hide after 4 seconds of inactivity
-        hideOverlayTimer = setTimeout(() => {
-          $("#audioSettingsWrapper").css('display', 'none');
-        }, 4000);
-      });
 
 
 
@@ -451,11 +408,12 @@ $("#refreshPWA").click(() => {
 <body>
   <div id="mainWrapper">
     <div id="audioSettingsWrapper">
+			<div id="fpsDisplay">FPS:</div>
       <div id="presetControls">
         <div>Preset: <select id="presetSelect"></select></div>
         <div>Cycle: <input type="checkbox" id="presetCycle" checked></input>
                     <input type="number" id="presetCycleLength"step="1" value="25" min="1"></input>
-                    Canvas Size: <input type="number" id="canvasScaleFactor"step="0.25" value="0.5" min="0.25" max="4.0"></input>
+                    Canvas Size: <input type="number" id="canvasScaleFactor"step="0.25" value="0.75" min="0.25" max="4.0"></input>
                               <label for="frameLimit">Frame Limit:</label>
           <select id="frameLimit">
             <option value="15">15</option>
@@ -480,16 +438,15 @@ $("#refreshPWA").click(() => {
           </select>
         </div>
         <div>
-          <button id="fullscreenBtn">Fullscreen</button>
           <button id="localFileBtn">Load local files</button>
           <button id="micSelectBtn">Use Mic</button>
           <button id="showFpsBtn">Show FPS</button>
         </div>
       </div>
     </div>
-  <div id="fpsDisplay">FPS:</div>
   <canvas id='canvas' width='800' height='600'></canvas>
   </div>
+  
   <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js')
