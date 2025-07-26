@@ -2,6 +2,7 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="./favicon.ico" type="image/x-icon">
   <title>Butterchurn Demo</title>
   <meta name="description" content="Butterchurn Demo Example">
@@ -73,6 +74,10 @@
 	#meshSizeSelect {
       width: 100px;
     }
+    
+ 	#frameLimit {
+      width: 100px;
+    }   
 	
     #fullscreenBtn {
       padding: 6px 12px;
@@ -120,8 +125,10 @@
       var presetRandom = true;
       var canvas = document.getElementById('canvas');
       var canvasScaleFactor = 0.5;
-      var meshSizeSelect = [32, 24];
-
+      var meshSizeSelect = [48, 36];
+      var frameInterval = 0;
+			var frameLimit = 45;
+      var e = null;
 
       function connectToAudioAnalyzer(sourceNode) {
         if(delayedAudible) {
@@ -142,26 +149,34 @@
         visualizer.render();
       } */
 
-      let lastFrameTime = performance.now();
-let frames = 0;
-let lastFpsUpdate = performance.now();
-let fps = 0;
-
-function startRenderer() {
-  requestAnimationFrame(() => startRenderer());
-
-  visualizer.render();
-
-  const now = performance.now();
-  frames++;
-
-  if (now - lastFpsUpdate >= 1000) {
-    fps = frames;
-    frames = 0;
-    lastFpsUpdate = now;
-    $("#fpsDisplay").text(`FPS: ${fps}`);
-  }
-}
+			function startRenderer() {
+				
+				var lastFrameTime = performance.now();
+        
+        frameInterval = 1000 / frameLimit;
+        
+          var frameCount = 0;
+					var fpsLastTime = performance.now();
+        
+        
+        // Render loop      
+        return function n() {
+					if (e = window.requestAnimationFrame(n), 0 === frameLimit) visualizer.render();
+						else {
+							var currentFrameTime = performance.now();
+              var i = currentFrameTime - lastFrameTime
+              i > frameInterval &&
+              (lastFrameTime = currentFrameTime - i % frameInterval, visualizer.render(), frameCount++);
+              
+        if (currentFrameTime - fpsLastTime >= 1000) {
+        var fps = frameCount;
+        $("#fpsDisplay").text(`FPS: ${fps}`);
+        frameCount = 0;
+        fpsLastTime = currentFrameTime;
+			}
+						}
+				}();
+      }
 
 			function loadLocalFiles(files, index = 0) {
         if (!rendering) {
@@ -281,6 +296,11 @@ function startRenderer() {
       $('#meshSizeSelect').change((evt) => {
       var meshSizeSelect = evt.target.value.split("x").map(Number);
       visualizer.setInternalMeshSize(...meshSizeSelect);
+      });
+
+      $('#frameLimit').change((evt) => {
+			frameLimit = parseInt($('#frameLimit').val());
+			frameInterval = 1000 / frameLimit;
       });
 
       $("#localFileBtn").click(function() {
@@ -435,6 +455,15 @@ $("#refreshPWA").click(() => {
         <div>Cycle: <input type="checkbox" id="presetCycle" checked></input>
                     <input type="number" id="presetCycleLength"step="1" value="25" min="1"></input>
                     Canvas Size: <input type="number" id="canvasScaleFactor"step="0.25" value="0.5" min="0.25" max="4.0"></input>
+                              <label for="frameLimit">Frame Limit:</label>
+          <select id="frameLimit">
+            <option value="15">15</option>
+            <option value="30">30</option>
+            <option value="45" selected>45</option>
+            <option value="60">60</option>
+            <option value="75">75</option>
+            <option value="90">90</option>
+          </select>
                     </div>
         <div>
           Random: <input type="checkbox" id="presetRandom" checked></input>
@@ -442,8 +471,8 @@ $("#refreshPWA").click(() => {
           <label for="meshSizeSelect">Mesh Size:</label>
           <select id="meshSizeSelect">
             <option value="24x18">24 x 18</option>
-            <option value="32x24" selected>32 x 24</option>
-            <option value="48x36">48 x 36</option>
+            <option value="32x24">32 x 24</option>
+            <option value="48x36" selected>48 x 36</option>
             <option value="64x48">64 x 48</option>
             <option value="96x72">96 x 72</option>
             <option value="128x96">128 x 96</option>
