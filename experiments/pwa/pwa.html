@@ -97,6 +97,12 @@
       font-size: 14px;
       cursor: pointer;
     }
+    
+    #exitFullscreenBtn {
+      padding: 6px 12px;
+      font-size: 14px;
+      cursor: pointer;
+    }
 
   </style>
   <link rel="stylesheet" href="./libs/normalize.css" />
@@ -325,6 +331,7 @@
           $("#fpsDisplay").toggle();
       });
       
+      
 $("#refreshPWA").click(() => {
 	console.log('button press');
   //caches.delete('butterchurn-cache').then(() => {
@@ -346,21 +353,15 @@ $("#refreshPWA").click(() => {
 
 			$(canvas).on("click", function () {
 				$("#presetControls").toggle();
-			});
-      
-      canvas.addEventListener('dblclick', () => {
 				const wrapper = document.getElementById("mainWrapper");
-				const isFullscreen = document.fullscreenElement;
-
-				if (isFullscreen) {
-					document.exitFullscreen();
-				} else {
-						wrapper.requestFullscreen();
-					}
+				wrapper.requestFullscreen();
 			});
 
 
 
+			$("#exitFullscreenBtn").click(() => {
+				document.exitFullscreen();
+			});
 
       function initPlayer() {
         audioContext = new AudioContext();
@@ -441,6 +442,7 @@ $("#refreshPWA").click(() => {
           <button id="localFileBtn">Load local files</button>
           <button id="micSelectBtn">Use Mic</button>
           <button id="showFpsBtn">Show FPS</button>
+          <button id="exitFullscreenBtn">Exit Fullscreen</button>
         </div>
       </div>
     </div>
