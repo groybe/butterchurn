@@ -308,8 +308,8 @@ AFRAME.registerComponent('canvas-updater', {
         }
 
         visualizer = butterchurn.createVisualizer(audioContext, canvas , {
-          width: 1024,
-          height: 512,
+          width: 5760,
+          height: 2880,
           pixelRatio: window.devicePixelRatio || 1,
           textureRatio: 1,
         });
@@ -324,18 +324,18 @@ AFRAME.registerComponent('canvas-updater', {
 <body>
 	<a-scene vr-mode-ui="enabled: true">
 		<a-assets>
-		<canvas id="canvas" width="1024" height="512" crossorigin="anonymous" style="display:none;"></canvas>
+		<canvas id="canvas" width="5760" height="2880" crossorigin="anonymous" style="display:none;"></canvas>
 	</a-assets>
 
   <!-- Inner curved wall using the canvas -->
   <a-cylinder
 		canvas-updater
     radius="5"
-    height="3"
+    height="6"
     theta-length="180"
     open-ended="true"
     scale="-1 1 1"
-    position="0 1.5 0"
+    position="0 3 0"
     rotation="0 270 0"
     material="shader: flat; src: #canvas; side: double">
   </a-cylinder>
@@ -346,7 +346,7 @@ AFRAME.registerComponent('canvas-updater', {
   <div id="mainWrapper">
     <div id="audioSelectWrapper">
       <div id="localFileBut">
-        <span>Load local files</span>
+        <span>Load local files goooo</span>
       </div>
     </div>
     <div id="presetControls">
