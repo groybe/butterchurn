@@ -275,8 +275,15 @@ AFRAME.registerComponent('canvas-updater', {
         material.map.needsUpdate = true;
       }
     }
+
+    // Add this part to ensure Butterchurn keeps rendering:
+    if (window.visualizer) {
+      window.visualizer.render();
+    }
   }
 });
+
+
 
       function initPlayer() {
         audioContext = new AudioContext();
@@ -340,9 +347,6 @@ AFRAME.registerComponent('canvas-updater', {
     <div id="audioSelectWrapper">
       <div id="localFileBut">
         <span>Load local files</span>
-      </div>
-      <div id="micSelect">
-        <span>Use Mic</span>
       </div>
     </div>
     <div id="presetControls">
