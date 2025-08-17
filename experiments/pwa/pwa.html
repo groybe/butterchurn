@@ -171,7 +171,7 @@
               
         if (currentFrameTime - fpsLastTime >= 1000) {
         var fps = frameCount;
-        $("#fpsDisplay").text(`FPS: ${fps}`);
+        $("#fpsDisplay").text(`FPS: ${fps} - Canvas: ${canvas.width*window.devicePixelRatio}×${canvas.height*window.devicePixelRatio}`);
         frameCount = 0;
         fpsLastTime = currentFrameTime;
 			}
