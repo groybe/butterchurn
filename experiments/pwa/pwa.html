@@ -355,7 +355,7 @@ $("#refreshPWA").click(() => {
 				$("#presetControls").toggle();
 				const wrapper = document.getElementById("mainWrapper");
 				wrapper.requestFullscreen();
-				//const session = await navigator.xr.requestSession('immersive-vr', {optionalFeatures: ['local-floor', 'bounded-floor', 'layers']});
+				const session = await navigator.xr.requestSession('immersive-vr', {optionalFeatures: ['local-floor', 'bounded-floor', 'layers']});
 			});
 
 
