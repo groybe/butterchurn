@@ -351,10 +351,10 @@ $("#refreshPWA").click(() => {
         visualizer.setRendererSize(canvas.width, canvas.height);
       }
 
-			$(canvas).on("click", function () {
+			$(canvas).on("click", async function () {
 				$("#presetControls").toggle();
 				const wrapper = document.getElementById("mainWrapper");
-				wrapper.requestFullscreen();
+				////wrapper.requestFullscreen();
 				const session = await navigator.xr.requestSession('immersive-vr', {optionalFeatures: ['local-floor', 'bounded-floor', 'layers']});
 			});
 
