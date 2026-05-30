@@ -351,56 +351,12 @@ $("#refreshPWA").click(() => {
         visualizer.setRendererSize(canvas.width, canvas.height);
       }
 
-			//$(canvas).on("click", async function () {
-			//	$("#presetControls").toggle();
-			//	const wrapper = document.getElementById("mainWrapper");
-				////wrapper.requestFullscreen();
-			//	const session = await navigator.xr.requestSession('immersive-vr', {optionalFeatures: ['local-floor', 'bounded-floor', 'layers']});
-			//});
-
 			$(canvas).on("click", async function () {
-  				$("#presetControls").toggle();
-  
-  				try {
-    			// Get butterchurn's GL context and make it XR-ready
-    			const gl = canvas.getContext('webgl', { xrCompatible: true });
-    await gl.makeXRCompatible();
-    
-    // Stop normal render loop (replace with your actual stop function)
-    //if (window.cancelAnimationFrame) cancelAnimationFrame(window.rafId);
-    
-    // Start XR session
-    const session = await navigator.xr.requestSession('immersive-vr', {
-      optionalFeatures: ['local-floor', 'bounded-floor', 'layers']
-    });
-    
-    // Bind XR layer to GL context
-    session.updateRenderState({ 
-      baseLayer: new XRWebGLLayer(session, gl) 
-    });
-    
-    // Start rendering to XR
-    session.requestAnimationFrame((time, frame) => {
-      const pose = frame.getViewerPose(await session.requestReferenceSpace('local-floor'));
-      if (pose) {
-        const layer = session.renderState.baseLayer;
-        gl.bindFramebuffer(gl.FRAMEBUFFER, layer.framebuffer);
-        
-        // Render butterchurn to each eye
-        pose.views.forEach(view => {
-          const viewport = layer.getViewport(view);
-          gl.viewport(viewport.x, viewport.y, viewport.width, viewport.height);
-          butterchurnRenderer.render(time); // Your existing render call
-        });
-      }
-      session.requestAnimationFrame(arguments.callee);
-    });
-    
-  } catch (err) {
-    console.error("XR failed:", err);
-    document.getElementById("mainWrapper").requestFullscreen(); // Fallback
-  }
-});
+				$("#presetControls").toggle();
+				const wrapper = document.getElementById("mainWrapper");
+				wrapper.requestFullscreen();
+				const session = await navigator.xr.requestSession('immersive-vr', {optionalFeatures: ['local-floor', 'bounded-floor', 'layers']});
+			});
 
 
 
